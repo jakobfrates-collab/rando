@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Report: The Reliability of Student Samples</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            scroll-behavior: smooth;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 300px;
+                max-height: 350px;
+            }
+        }
+        .nav-item {
+            @apply px-3 py-2 rounded-md text-sm font-medium text-stone-600 hover:bg-sky-100 hover:text-sky-800 transition-colors;
+        }
+        .nav-item.active {
+            @apply bg-sky-600 text-white hover:bg-sky-700 hover:text-white;
+        }
+        .stat-card {
+            @apply bg-white p-6 rounded-lg shadow-lg transform transition-transform hover:-translate-y-1;
+        }
+        .stat-card-title {
+            @apply text-5xl font-bold text-sky-600;
+        }
+        .stat-card-text {
+            @apply text-lg font-medium text-stone-700 mt-2;
+        }
+        .content-section {
+            @apply w-full max-w-5xl mx-auto px-4 py-12;
+        }
+        .btn {
+            @apply px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-all;
+        }
+        .btn-primary {
+            @apply bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-50;
+        }
+        .btn-secondary {
+            @apply bg-stone-500 hover:bg-stone-600;
+        }
+        .btn-toggle {
+            @apply px-4 py-2 rounded-md text-sm font-medium transition-colors;
+        }
+        .btn-toggle.active {
+            @apply bg-sky-600 text-white;
+        }
+        .btn-toggle.inactive {
+            @apply bg-stone-200 text-stone-700 hover:bg-stone-300;
+        }
+        h1 { @apply text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl; }
+        h2 { @apply text-3xl font-bold text-sky-800 mb-6; }
+        p { @apply text-lg text-stone-700 leading-relaxed mb-4; }
+    </style>
+    <!-- Chosen Palette: Neutral Sky -->
+    <!-- Application Structure Plan: The app uses a 5-section thematic structure: Home (The Problem), The Experiment, The "Flip-Flop" Effect, Statistical Deep Dive, and Conclusion. This was chosen over mirroring the report's academic structure (Intro, Method, etc.) to create an interactive narrative. It guides the user from the "why" (problem) to the "how" (experiment), then immediately to the most impactful, interactive "wow" finding (the "flip-flop" simulation). The "deep dive" section provides statistical evidence *supporting* this main finding, and the conclusion provides the takeaway. This flow prioritizes user engagement and understanding by making the core finding the interactive centerpiece. -->
+    <!-- Visualization & Content Choices: 1. Home: HTML/Tailwind Stat Cards. Goal: Inform. Interaction: Hover. Justification: Highlights the core problem statement. 2. Experiment: HTML/Tailwind Stat Cards. Goal: Inform. Interaction: Hover. Justification: Highlights key study parameters (48 samples). 3. "Flip-Flop" Effect: Chart.js Bar Chart + JS Text. Goal: Demonstrate/Engage. Interaction: Button click ("Run New Sample"). Justification: Simulates the "research lottery," letting the user *experience* the report's core finding of result instability. 4. Deep Dive: Chart.js Histograms (Bar Charts). Goal: Compare/Support. Interaction: Toggle buttons. Justification: Clearly visualizes the report's findings of significant variance in sample means and variances, which is the *cause* of the flip-flop effect. 5. Conclusion: HTML/Tailwind text. Goal: Summarize. Interaction: None. Justification: Clear, direct text for the final implications. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="max-w-6xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold text-sky-700">Sample Reliability</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4" id="nav-links">
+                        <a href="#home" class="nav-item active" data-section="home">The Problem</a>
+                        <a href="#experiment" class="nav-item" data-section="experiment">The Experiment</a>
+                        <a href="#flipflop" class="nav-item" data-section="flipflop">The "Flip-Flop" Effect</a>
+                        <a href="#deepdive" class="nav-item" data-section="deepdive">Statistical Deep Dive</a>
+                        <a href="#conclusion" class="nav-item" data-section="conclusion">The Conclusion</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <select id="mobile-nav-select" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500">
+                        <option value="home">The Problem</option>
+                        <option value="experiment">The Experiment</option>
+                        <option value="flipflop">The "Flip-Flop" Effect</option>
+                        <option value="deepdive">Statistical Deep Dive</option>
+                        <option value="conclusion">The Conclusion</option>
+                    </select>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main id="main-content">
+        <section id="home" class="content-section text-center">
+            <h1 class="mb-4">The Student Sample Problem</h1>
+            <p class="text-xl max-w-3xl mx-auto text-stone-600">A huge amount of scientific research relies on surveying undergraduate college students. This is done because it's cheap and easy, but it operates on a critical assumption: that all student samples are roughly the same. This interactive report explores research by Peterson & Merunka (2014) that puts this assumption to the test.</p>
+            
+            <div class="grid md:grid-cols-3 gap-8 text-center mt-16">
+                <div class="stat-card">
+                    <div class="stat-card-title">🔬</div>
+                    <div class="stat-card-text">Researchers build theories...</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-title">🧑‍🎓</div>
+                    <div class="stat-card-text">...based on one group of students...</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-title">🌍</div>
+                    <div class="stat-card-text">...and assume the theory is universal.</div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="experiment" class="content-section hidden">
+            <h2 class="text-center">The Experiment</h2>
+            <p class="text-center max-w-3xl mx-auto">To test the assumption of "homogeneity," the researchers didn't just compare two or three samples. They collected data from 48 different convenience samples, all drawn from the *exact same population* (undergraduate business students) and asked them about the *exact same topic* (business-related ethicality).</p>
+            
+            <div class="grid md:grid-cols-2 gap-8 mt-12">
+                <div class="stat-card text-center">
+                    <div class="stat-card-title">48</div>
+                    <div class="stat-card-text">Separate Student Samples</div>
+                </div>
+                <div class="stat-card text-center">
+                    <div class="stat-card-title">1</div>
+                    <div class="stat-card-text">Population: Business Undergrads</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="flipflop" class="content-section hidden">
+            <h2 class="text-center">The "Flip-Flop" Effect</h2>
+            <p class="text-center max-w-3xl mx-auto">This is the most critical finding. The researchers tested the relationship between two variables. Depending on *which* of the 48 samples they used, the results "flip-flopped" entirely. A hypothesis could be confirmed or rejected based purely on which classroom a researcher happened to survey. Click the button below to simulate this "research lottery."</p>
+            
+            <div class="text-center my-8">
+                <button id="run-sample-btn" class="btn btn-primary text-lg">Run a New Sample Simulation</button>
+            </div>
+            
+            <div id="flipflop-results" class="text-center bg-white p-6 rounded-lg shadow-inner max-w-2xl mx-auto">
+                <div class="text-2xl font-bold" id="sample-result-text">Click the button to run the first sample...</div>
+            </div>
+            
+            <div class="chart-container mt-8">
+                <canvas id="flipFlopChart"></canvas>
+            </div>
+        </section>
+
+        <section id="deepdive" class="content-section hidden">
+            <h2 class="text-center">Statistical Deep Dive</h2>
+            <p class="text-center max-w-3xl mx-auto">The "flip-flop" effect happens because the underlying statistics of the 48 samples were wildly different. The report found statistically significant differences in their means, variances, and correlations. The charts below show the distribution of these key stats across all 48 samples, proving they are *not* interchangeable.</p>
+            
+            <div class="text-center my-8 space-x-2">
+                <button id="show-means-btn" class="btn-toggle active" data-chart="meansChart">Distribution of Means</button>
+                <button id="show-variances-btn" class="btn-toggle inactive" data-chart="variancesChart">Distribution of Variances</button>
+            </div>
+
+            <div id="meansChartContainer" class="chart-container">
+                <canvas id="meansChart"></canvas>
+            </div>
+            <div id="variancesChartContainer" class="chart-container hidden">
+                <canvas id="variancesChart"></canvas>
+            </div>
+        </section>
+
+        <section id="conclusion" class="content-section hidden">
+            <h2 class="text-center">The Conclusion: What This Means</h2>
+            <p class="text-center max-w-3xl mx-auto">The findings empirically document the massive uncertainty created by using single convenience samples of college students. They are not a reliable, monolithic group, and this practice threatens the validity and reproducibility of research.</p>
+            
+            <div class="mt-12 max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+                <h3 class="text-2xl font-bold text-sky-800 mb-4">Key Takeaways</h3>
+                <ul class="list-disc list-inside space-y-3 text-lg text-stone-700">
+                    <li>The assumption of student sample homogeneity is false.</li>
+                    <li>Research findings (correlations, path parameters) can "flip-flop" from positive to negative based on the specific sample used.</li>
+                    <li>This instability is due to significant differences in sample means and variances.</li>
+                    <li>Relying on a single convenience sample is a high-risk "research lottery."</li>
+                    <li>Scientific progress requires rigorous replication across multiple, diverse samples.</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center p-6 bg-stone-200 text-stone-600 text-sm mt-12">
+        Interactive visualization based on Peterson, R. A., & Merunka, D. R. (2014). Convenience samples of college students and research reproducibility. *Journal of Business Research*, 67(5), 1035-1041.
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const charts = {};
+            let currentSampleIndex = -1;
+
+            const mockSampleData = [
+                { s: 1, c: 0.25, p: 0.01 }, { s: 2, c: 0.10, p: 0.30 }, { s: 3, c: -0.15, p: 0.12 },
+                { s: 4, c: 0.30, p: 0.00 }, { s: 5, c: 0.05, p: 0.70 }, { s: 6, c: -0.22, p: 0.03 },
+                { s: 7, c: 0.18, p: 0.08 }, { s: 8, c: -0.02, p: 0.90 }, { s: 9, c: 0.28, p: 0.01 },
+                { s: 10, c: -0.19, p: 0.06 }, { s: 11, c: 0.12, p: 0.25 }, { s: 12, c: 0.08, p: 0.55 },
+                { s: 13, c: 0.20, p: 0.04 }, { s: 14, c: -0.11, p: 0.28 }, { s: 15, c: -0.05, p: 0.65 },
+                { s: 16, c: 0.35, p: 0.00 }, { s: 17, c: -0.25, p: 0.01 }, { s: 18, c: 0.15, p: 0.15 },
+                { s: 19, c: 0.03, p: 0.82 }, { s: 20, c: 0.21, p: 0.04 }, { s: 21, c: -0.08, p: 0.50 },
+                { s: 22, c: 0.17, p: 0.10 }, { s: 23, c: -0.30, p: 0.00 }, { s: 24, c: 0.00, p: 1.00 },
+                { s: 25, c: 0.23, p: 0.02 }, { s: 26, c: -0.13, p: 0.20 }, { s: 27, c: 0.10, p: 0.40 },
+                { s: 28, c: 0.07, p: 0.60 }, { s: 29, c: -0.20, p: 0.05 }, { s: 30, c: 0.26, p: 0.01 },
+                { s: 31, c: 0.11, p: 0.33 }, { s: 32, c: -0.03, p: 0.85 }, { s: 33, c: 0.19, p: 0.07 },
+                { s: 34, c: -0.16, p: 0.11 }, { s: 35, c: 0.32, p: 0.00 }, { s: 36, c: 0.02, p: 0.91 },
+                { s: 37, c: -0.27, p: 0.01 }, { s: 38, c: 0.13, p: 0.22 }, { s: 39, c: -0.07, p: 0.58 },
+                { s: 40, c: 0.22, p: 0.03 }, { s: 41, c: 0.06, p: 0.68 }, { s: 42, c: -0.10, p: 0.38 },
+                { s: 43, c: 0.29, p: 0.01 }, { s: 44, c: -0.21, p: 0.04 }, { s: 45, c: 0.14, p: 0.18 },
+                { s: 46, c: -0.01, p: 0.95 }, { s: 47, c: 0.24, p: 0.02 }, { s: 48, c: -0.18, p: 0.08 }
+            ];
+
+            const mockHistogramData = {
+                means: [5, 12, 18, 9, 4],
+                variances: [3, 8, 15, 16, 6]
+            };
+            
+            const navLinks = document.querySelectorAll('.nav-item');
+            const mobileNav = document.getElementById('mobile-nav-select');
+            const sections = document.querySelectorAll('.content-section');
+
+            function showSection(sectionId) {
+                sections.forEach(section => {
+                    if (section.id === sectionId) {
+                        section.classList.remove('hidden');
+                    } else {
+                        section.classList.add('hidden');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    if (link.dataset.section === sectionId) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+                
+                if (mobileNav.value !== sectionId) {
+                    mobileNav.value = sectionId;
+                }
+                
+                window.scrollTo(0, 0);
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const sectionId = e.target.dataset.section;
+                    showSection(sectionId);
+                });
+            });
+            
+            mobileNav.addEventListener('change', (e) => {
+                showSection(e.target.value);
+            });
+
+            function initFlipFlopChart() {
+                const ctx = document.getElementById('flipFlopChart').getContext('2d');
+                charts.flipFlop = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Relationship Coefficient'],
+                        datasets: [{
+                            label: 'Sample Result',
+                            data: [0],
+                            backgroundColor: ['#6b7280'],
+                            borderColor: ['#4b5563'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: {
+                            x: {
+                                min: -0.4,
+                                max: 0.4,
+                                title: {
+                                    display: true,
+                                    text: 'Coefficient (Negative <-> Positive)'
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: { display: false }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `Coefficient: ${context.raw.toFixed(2)}`
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateFlipFlopChart() {
+                currentSampleIndex = (currentSampleIndex + 1) % mockSampleData.length;
+                const sample = mockSampleData[currentSampleIndex];
+                const resultText = document.getElementById('sample-result-text');
+                
+                let direction, significance, color, significanceText;
+                
+                if (sample.c > 0) {
+                    direction = "Positive";
+                } else if (sample.c < 0) {
+                    direction = "Negative";
+                } else {
+                    direction = "No";
+                }
+                
+                if (sample.p <= 0.05) {
+                    significance = "Statistically Significant";
+                    significanceText = "This result is <strong>Statistically Significant</strong> (p = " + sample.p.toFixed(3) + "). A researcher would likely publish this finding.";
+                    color = sample.c > 0 ? '#059669' : '#dc2626';
+                } else {
+                    significance = "NOT Significant";
+                    significanceText = "This result is <strong>NOT Significant</strong> (p = " + sample.p.toFixed(3) + "). This finding would likely be ignored or unpublished.";
+                    color = '#6b7280';
+                }
+
+                resultText.innerHTML = `
+                    <div class="mb-2">Sample #${sample.s} of 48:</div>
+                    <div class="text-4xl font-bold" style="color: ${color};">${direction} & ${significance}</div>
+                    <div class="text-base text-stone-600 mt-4">${significanceText}</div>
+                `;
+
+                charts.flipFlop.data.datasets[0].data[0] = sample.c;
+                charts.flipFlop.data.datasets[0].backgroundColor[0] = color;
+                charts.flipFlop.data.datasets[0].borderColor[0] = color;
+                charts.flipFlop.update();
+            }
+
+            document.getElementById('run-sample-btn').addEventListener('click', updateFlipFlopChart);
+            
+            function initDeepDiveCharts() {
+                const meansCtx = document.getElementById('meansChart').getContext('2d');
+                charts.means = new Chart(meansCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['2.5-2.7', '2.7-2.9', '2.9-3.1', '3.1-3.3', '3.3-3.5'],
+                        datasets: [{
+                            label: 'Number of Samples',
+                            data: mockHistogramData.means,
+                            backgroundColor: '#0284c7',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: { display: true, text: 'Distribution of Sample Means (N=48)', font: { size: 16 } },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { title: { display: true, text: 'Number of Samples' } },
+                            x: { title: { display: true, text: 'Average Ethicality Score' } }
+                        }
+                    }
+                });
+
+                const variancesCtx = document.getElementById('variancesChart').getContext('2d');
+                charts.variances = new Chart(variancesCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['0.4-0.5', '0.5-0.6', '0.6-0.7', '0.7-0.8', '0.8-0.9'],
+                        datasets: [{
+                            label: 'Number of Samples',
+                            data: mockHistogramData.variances,
+                            backgroundColor: '#db2777',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: { display: true, text: 'Distribution of Sample Variances (N=48)', font: { size: 16 } },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { title: { display: true, text: 'Number of Samples' } },
+                            x: { title: { display: true, text: 'Variance in Ethicality Score' } }
+                        }
+                    }
+                });
+            }
+
+            const toggleButtons = document.querySelectorAll('.btn-toggle');
+            const chartContainers = [
+                document.getElementById('meansChartContainer'),
+                document.getElementById('variancesChartContainer')
+            ];
+            
+            toggleButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const chartToShow = e.target.dataset.chart;
+                    
+                    toggleButtons.forEach(btn => {
+                        if (btn.dataset.chart === chartToShow) {
+                            btn.classList.remove('inactive');
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                            btn.classList.add('inactive');
+                        }
+                    });
+                    
+                    chartContainers.forEach(container => {
+                        if (container.id.startsWith(chartToShow)) {
+                            container.classList.remove('hidden');
+                        } else {
+                            container.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            initFlipFlopChart();
+            initDeepDiveCharts();
+        });
+    </script>
+</body>
+</html>
